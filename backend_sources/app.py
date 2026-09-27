@@ -71,6 +71,39 @@ def predict():
             "error": f"Prediction failed: {str(e)}"
         }), 500
 
+@app.route("/v1/predictbatch", methods=["POST"])
+def predict_batch():
+    try:
+        if "file" not in request.files:
+            return jsonify({
+                "error": "No file provided"
+            }), 400
 
+        file = request.files["file"]
+
+        # Read uploaded CSV into a DataFrame
+        batch_data = pd.read_csv(file)
+
+        # Generate predictions for all rows
+        predictions = model.predict(batch_data)
+
+        # Return predictions as JSON
+        results = {
+            str(index): round(float(prediction), 2)
+            for index, prediction in enumerate(predictions)
+        }
+
+        logger.info(
+            f"Batch prediction completed for {len(predictions)} records"
+        )
+
+        return jsonify(results)
+
+    except Exception as e:
+        logger.exception("Batch prediction failed")
+        return jsonify({
+            "error": f"Batch prediction failed: {str(e)}"
+        }), 500
+        
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=7860)
